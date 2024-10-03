@@ -26,7 +26,6 @@ class GridWorldController():
         self.show_world = show_world
 
         self.loader = Loader()
-        self.loader.get_agent_file()
 
         # Default to creating a new world if both variables are set.
         if (len(dimensions) != 0 and env_path != None):
