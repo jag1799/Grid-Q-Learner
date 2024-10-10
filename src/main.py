@@ -4,22 +4,18 @@
 
 from grid_world_controller import GridEnvironmentController
 
-import logging
-
-dimensions : tuple = (5, 5)
 save_world : bool = False
-show_world : bool = True
+show_world : bool = False
 
 
-num_epochs : int = 100
+num_epochs : int = 5000
 
 def main():
-    logging.info("Launching Application")
 
     world_path = '/home/jag1799/Documents/vscode_ws/Grid-Q-Learner/src/config/cfg1.world.yaml'
     agent_info = ('/home/jag1799/Documents/vscode_ws/Grid-Q-Learner/src/config/cfg1.agent.yaml', '')
     controller = GridEnvironmentController(env_path=world_path, agent_path=agent_info, show_world=show_world)
-    # controller.start(num_epochs=num_epochs)
+    controller.start(num_epochs=num_epochs)
     if save_world:
         controller.save_world()
 

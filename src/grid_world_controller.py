@@ -5,6 +5,7 @@ import fnmatch
 import numpy as np
 import pygame
 import random
+import sys
 
 class GridEnvironmentController:
 
@@ -26,7 +27,7 @@ class GridEnvironmentController:
     # Insert a reward in a random position in the Grid world that isn't the agent's starting position.
     def __insert_reward__(self):
         try:
-            env_rows = len(self.environment[0])
+            env_rows = len(self.environment)
             env_cols = len(self.environment[1])
             self.environment[random.randint(1, env_rows-1)][random.randint(1, env_cols-1)] = 1
         except:
@@ -48,7 +49,9 @@ class GridEnvironmentController:
         
         # Either load agent q table, hyperparameters, or both
         if fnmatch.fnmatch(self.agent_path[0], '*.agent.yaml') and fnmatch.fnmatch(self.agent_path[1], '*.agent.csv'):
-            self.agent = qAgent(self.environment.shape, loader.get_agent_parameters(self.agent_path[0]), loader.get_agent_qtable(self.agent_path[1]))
+            self.agent = qAgent(self.environment.shape, 
+                                loader.get_agent_parameters(self.agent_path[0]), 
+                                loader.get_agent_qtable(self.agent_path[1]))
         elif fnmatch.fnmatch(self.agent_path[0], '*.agent.yaml'):
             self.agent = qAgent(self.environment.shape, loader.get_agent_parameters(self.agent_path[0]), None)
         elif fnmatch.fnmatch(self.agent_path[1], '*.agent.csv'):
@@ -57,44 +60,54 @@ class GridEnvironmentController:
             raise FileExistsError("Agent file not found or invalid filetype used.")
     
     ##
-    # If enabled, start pygame viewer and environment updates.
-    # def start(self, num_epochs : int, win_size : tuple = (1080, 720)):
+    # If enabled, agent training or testing
+    def start(self, num_epochs : int, win_size : tuple = (1080, 720)):
 
-    #     if self.show_world:
-    #         # Initialize pygame internals
-    #         pygame.init()
-    #         self.screen = pygame.display.set_mode(win_size)
-    #         self.clock = pygame.time.Clock()
+        if self.show_world:
+            # Initialize pygame internals
+            pygame.init()
+            self.screen = pygame.display.set_mode(win_size)
+            self.clock = pygame.time.Clock()
 
-    #         # Initialize other environment settings.
-    #         grid_tile_width = win_size[0] / self.dimensions[0] # Width of a grid tile in pixels
-    #         grid_tile_height = win_size[1] / self.dimensions[1] # Height of a grid tile in pixels
+            # Initialize other environment settings.
+            grid_tile_width = win_size[0] / len(self.environment[0]) # Width of a grid tile in pixels. Used for columns.
+            grid_tile_height = win_size[1] / len(self.environment) # Height of a grid tile in pixels Used for rows
 
-    #     self.running = True
+        self.running = True
         
-    #     # Initialize Agent
-    #     epoch = 0
-    #     agent = qAgent(self.dimensions)
+        # Initialize Agent
+        epoch = 0
 
-    #     # Start main event loop
-    #     while self.running and epoch < num_epochs:
+        # Start main event loop
+        while self.running and epoch < num_epochs:
             
-    #         if self.show_world:
-    #             # Check if the user manually stopped the session
-    #             for event in pygame.event.get():
-    #                 if event.type == pygame.QUIT:
-    #                     self.running = False
-    #             self.screen.fill('white')
+            if self.show_world:
+                # Check if the user manually stopped the session
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        self.running = False
+                self.screen.fill('white')
 
-    #             self.draw_grid(grid_tile_width, grid_tile_height, win_size)
+                self.draw_grid(grid_tile_width, grid_tile_height, win_size)
 
-    #             pygame.display.flip()
-    #             self.clock.tick(60)
+                pygame.display.flip()
+                self.clock.tick(60)
             
-    #         epoch += 1
+            epoch += 1
 
-    #     self.stop()
+        self.stop()
     
+    def draw_grid(self, width, height, win_size):
+        for row in range(0, win_size[0], int(width)):
+            for col in range(0, win_size[1], int(height)):
+                rect = pygame.Rect(row, col, width, height)
+                pygame.draw.rect(self.screen, (0, 0, 0), rect, 1)
+
+    def stop(self):
+        try:
+            pygame.quit()
+        except:
+            sys.exit(-1)
     ##
     # Save the generated world
     def save_world(self):
