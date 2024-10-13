@@ -34,7 +34,9 @@ class GridEnvironmentController:
         try:
             env_rows = len(self.environment)
             env_cols = len(self.environment[1])
-            self.environment[random.randint(1, env_rows-1)][random.randint(1, env_cols-1)] = 1
+            self.reward_row = random.randint(1, env_rows-1)
+            self.reward_col = random.randint(1, env_cols-1)
+            self.environment[self.reward_row][self.reward_col] = 1
         except:
             raise AttributeError("Environment variable has not been initialized.")
 
@@ -87,11 +89,13 @@ class GridEnvironmentController:
                     self.screen.fill('white')
 
                     grid_world_environment_utils.draw_grid(self.screen, grid_tile_width, grid_tile_height, win_size)
-                    grid_world_environment_utils.draw_agent(self.screen, grid_tile_width, grid_tile_height, self.agent.current_env_state)
+                    grid_world_environment_utils.draw_agent(self.screen, self.agent.current_env_state)
+                    grid_world_environment_utils.draw_reward(self.screen, self.reward_row, self.reward_col)
 
                     pygame.display.flip()
                     self.clock.tick(60)
 
+                # Pure debugging statement for now
                 if self.environment[self.agent.current_env_state[0], self.agent.current_env_state[1]] == 1:
                     print("Reward found!")
 
