@@ -1,5 +1,10 @@
+# AUTHOR: JAG
+# DATE: [2024]
+# DESCRIPTION: Central Controlling class for agent and environment capabilities.
+
 from agent import qAgent
 from loader import Loader
+import grid_world_environment_utils
 
 import fnmatch
 import numpy as np
@@ -20,9 +25,9 @@ class GridEnvironmentController:
         self.agent_path = agent_path
         self.env_path = env_path
         self.show_world = show_world
-    
+
         self.__set_environment__()
-    
+
     ##
     # Insert a reward in a random position in the Grid world that isn't the agent's starting position.
     def __insert_reward__(self):
@@ -46,11 +51,11 @@ class GridEnvironmentController:
             self.environment = loader.load_world_preset(self.env_path)
         else:
             raise FileExistsError("Environment File not found or invalid filetype used.")
-        
+
         # Either load agent q table, hyperparameters, or both
         if fnmatch.fnmatch(self.agent_path[0], '*.agent.yaml') and fnmatch.fnmatch(self.agent_path[1], '*.agent.csv'):
-            self.agent = qAgent(self.environment.shape, 
-                                loader.get_agent_parameters(self.agent_path[0]), 
+            self.agent = qAgent(self.environment.shape,
+                                loader.get_agent_parameters(self.agent_path[0]),
                                 loader.get_agent_qtable(self.agent_path[1]))
         elif fnmatch.fnmatch(self.agent_path[0], '*.agent.yaml'):
             self.agent = qAgent(self.environment.shape, loader.get_agent_parameters(self.agent_path[0]), None)
@@ -58,50 +63,44 @@ class GridEnvironmentController:
             self.agent = qAgent(self.environment.shape, None, loader.get_agent_qtable(self.agent_path[1]))
         else:
             raise FileExistsError("Agent file not found or invalid filetype used.")
-    
+
     ##
     # If enabled, agent training or testing
     def start(self, num_epochs : int, win_size : tuple = (1080, 720)):
-
         if self.show_world:
             # Initialize pygame internals
             pygame.init()
-            self.screen = pygame.display.set_mode(win_size)
-            self.clock = pygame.time.Clock()
+            self.screen, self.clock, grid_tile_width, grid_tile_height = grid_world_environment_utils.init_pygame_world(win_size, self.environment)
 
-            # Initialize other environment settings.
-            grid_tile_width = win_size[0] / len(self.environment[0]) # Width of a grid tile in pixels. Used for columns.
-            grid_tile_height = win_size[1] / len(self.environment) # Height of a grid tile in pixels Used for rows
-
-        self.running = True
-        
-        # Initialize Agent
-        epoch = 0
+        running = True
 
         # Start main event loop
-        while self.running and epoch < num_epochs:
-            
-            if self.show_world:
-                # Check if the user manually stopped the session
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        self.running = False
-                self.screen.fill('white')
+        for epoch in range(num_epochs):
+            while running and self.environment[self.agent.current_env_state[0], self.agent.current_env_state[1]] != 1:
+                self.agent.learn()
 
-                self.draw_grid(grid_tile_width, grid_tile_height, win_size)
+                if self.show_world:
+                    # Check if the user manually stopped the session
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            running = False
+                    self.screen.fill('white')
 
-                pygame.display.flip()
-                self.clock.tick(60)
-            
+                    grid_world_environment_utils.draw_grid(self.screen, grid_tile_width, grid_tile_height, win_size)
+                    grid_world_environment_utils.draw_agent(self.screen, grid_tile_width, grid_tile_height, self.agent.current_env_state)
+
+                    pygame.display.flip()
+                    self.clock.tick(60)
+
+                if self.environment[self.agent.current_env_state[0], self.agent.current_env_state[1]] == 1:
+                    print("Reward found!")
+
+            if running == False:
+                self.stop()
+
             epoch += 1
 
         self.stop()
-    
-    def draw_grid(self, width, height, win_size):
-        for row in range(0, win_size[0], int(width)):
-            for col in range(0, win_size[1], int(height)):
-                rect = pygame.Rect(row, col, width, height)
-                pygame.draw.rect(self.screen, (0, 0, 0), rect, 1)
 
     def stop(self):
         try:

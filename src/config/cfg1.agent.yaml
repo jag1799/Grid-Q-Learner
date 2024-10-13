@@ -1,5 +1,4 @@
-epsilon: 0.01 # Greedy 
-learning_rate: 0.75
+epsilon: 0.95 # Exploration Probability
 gamma: 0.95 # Discount Rate
-alpha: 0.0005 # Decay Rate
+alpha: 0.0005 # Exploration Probability Decay Rate
 num_epochs: 100
