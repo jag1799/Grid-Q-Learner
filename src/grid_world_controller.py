@@ -11,6 +11,7 @@ import numpy as np
 import pygame
 import random
 import sys
+from tqdm import tqdm
 
 class GridEnvironmentController:
 
@@ -74,36 +75,31 @@ class GridEnvironmentController:
             pygame.init()
             self.screen, self.clock, grid_tile_width, grid_tile_height = grid_world_environment_utils.init_pygame_world(win_size, self.environment)
 
-        running = True
-
         # Start main event loop
-        for epoch in range(num_epochs):
-            while running and self.environment[self.agent.current_env_state[0], self.agent.current_env_state[1]] != 1:
+        for epoch in tqdm(range(num_epochs)):
+            while self.environment[self.agent.current_env_state[0], self.agent.current_env_state[1]] != 1:
                 self.agent.learn()
 
                 if self.show_world:
                     # Check if the user manually stopped the session
                     for event in pygame.event.get():
                         if event.type == pygame.QUIT:
-                            running = False
+                            self.stop()
                     self.screen.fill('white')
 
                     grid_world_environment_utils.draw_grid(self.screen, grid_tile_width, grid_tile_height, win_size)
-                    grid_world_environment_utils.draw_agent(self.screen, self.agent.current_env_state)
                     grid_world_environment_utils.draw_reward(self.screen, self.reward_row, self.reward_col)
+                    grid_world_environment_utils.draw_agent(self.screen, self.agent.current_env_state)
 
                     pygame.display.flip()
-                    self.clock.tick(60)
+                    self.clock.tick(5)
 
                 # Pure debugging statement for now
                 if self.environment[self.agent.current_env_state[0], self.agent.current_env_state[1]] == 1:
                     print("Reward found!")
 
-            if running == False:
-                self.stop()
-
+            self.agent.reset()
             epoch += 1
-
         self.stop()
 
     def stop(self):

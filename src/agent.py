@@ -24,7 +24,7 @@ class qAgent():
         self._init_q_table_(qTable)
 
         # Dynamic Values
-        self.current_q_state = [0, 0]
+        self.current_q_state = 0
         self.current_env_state = [0, 0]
         self.reward = 0
 
@@ -57,40 +57,47 @@ class qAgent():
     def learn(self):
 
         action = self.choose_action()
+        t_reward = self.perform_action(action)
 
-        self.perform_action(action)
+        next_q_row = (self.current_q_state + 1) % self.num_states
+
+        self.q_table[self.current_q_state, action] += self.alpha * (t_reward + self.gamma * np.max(self.q_table[next_q_row])) \
+                                                      - self.q_table[self.current_q_state, action]
+
+        self.current_q_state = next_q_row
 
     ##
     # Chooses an action using the Greedy epsilon Method
     def choose_action(self):
+        # FIXME: When the agent gets to the far right, it tends to stay there.  Create distribution that weighs unchosen actions more heavily
+        # the longer they go unchosen to get out of local minima.
         if np.random.randint(0, 1) < self.epsilon:
-            action = np.random.randint(0, self.num_actions) # No known best actions, so choose one and explore
+            action = np.random.randint(0, self.num_actions - 1) # No known best actions, so choose one and explore
+            self.epsilon -= self.alpha # Decrease the exploration probability slightly.
         else:
             action = np.argmax(self.q_table[self.current_q_state, :]) # Select the best action in the current row
-        self.epsilon -= self.alpha # Decrease the exploration probability slightly.
         return action
 
-    def perform_action(self, action : int):
+    def perform_action(self, action : int) -> int:
         if action == 0: # Move up
             # Check boundary condition
             if self.current_env_state[0] == 0:
-                return
+                return -0.25
             self.current_env_state[0] -= 1
         elif action == 1: # Move Down
             if self.current_env_state[0] == self.dimensions[0] - 1:
-                return
+                return -0.25
             self.current_env_state[0] += 1
         elif action == 2: # Move Right:
             if self.current_env_state[1] == self.dimensions[1] - 1:
-                return
+                return -0.25
             self.current_env_state[1] += 1
         elif action == 3: # Move Left:
             if self.current_env_state[1] == 0:
-                return
+                return -0.25
             self.current_env_state[1] -= 1
+        return -0.005
 
-    def measure_reward(self):
-        pass
-
-    def update_q_table(self):
-        pass
+    def reset(self):
+        self.current_env_state = [0, 0]
+        self.current_q_state = 0
