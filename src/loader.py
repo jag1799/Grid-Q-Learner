@@ -3,6 +3,7 @@
 # DESCRIPTION: Loader for configuration files for Q Learning Agent and Environment
 
 import numpy as np
+import os
 import yaml
 
 class Loader():
@@ -53,3 +54,13 @@ class Loader():
     # Loads a grid world preset from a CSV file.
     def load_world_preset(self, env_preset_path : str):
         return np.loadtxt(env_preset_path, delimiter=',', dtype=int)
+
+    ##
+    # Save the generated world
+    def save_world(self, environment, world_save_path):
+        world_path = os.path.join(world_save_path, "cfg1.world.csv")
+        np.savetxt(world_path, environment, delimiter=",")
+
+    def save_q_table(self, q_table, agent_save_path):
+        agent_path = os.path.join(agent_save_path, "cfg1.agent.csv")
+        np.savetxt(agent_path, q_table, delimiter=',')

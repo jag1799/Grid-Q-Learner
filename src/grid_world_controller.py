@@ -17,16 +17,21 @@ from tqdm import tqdm
 class GridEnvironmentController:
 
     """
-    - **path**: *str*
-        - Path to a configuration file for presets or new world/agent parameters.  Required if **dims** \
-          is *None*.
+    - **loader**: *Loader*
+        - Loader() object used to pull YAML or CSV data from provided string paths.
+    - **env_path**: *str*
+        - Path to a configuration file for presets or new world/agent parameters.  File extensions must be either a *.world.yaml \
+        or *.world.csv to be recognizable by the parser.
+    - **agent_path**: *str*
+        - Path to an already created Q-Table.  Note that Q-Tables must be compatible with the environment parameters.
     - **show_world**: *bool*
-        - Flag to indicate whether to open Pygame window for training/testing visualization or not. Always required.
+        - Flag to indicate whether to open Pygame window for training/testing visualization or not.
     """
-    def __init__(self, env_path : str, agent_path : tuple, show_world : bool = True):
+    def __init__(self, loader : Loader, env_path : str, agent_path : tuple, show_world : bool = True):
         self.agent_path = agent_path
         self.env_path = env_path
         self.show_world = show_world
+        self.loader = loader
 
         self.__set_environment__()
 
@@ -45,14 +50,24 @@ class GridEnvironmentController:
     ##
     # Set the environment variable upon initialization of the controller.
     def __set_environment__(self):
-        loader = Loader()
 
+        # Generate a new world using configs
         if fnmatch.fnmatch(self.env_path, '*.world.yaml'):
-            environment_params = loader.get_world_parameters(self.env_path)
+            environment_params = self.loader.get_world_parameters(self.env_path)
             self.environment = np.zeros(shape=(int(environment_params['rows']), int(environment_params['columns'])))
             self.__insert_reward__()
+
+        # Load an existing world from a csv
         elif fnmatch.fnmatch(self.env_path, '*.world.csv'):
-            self.environment = loader.load_world_preset(self.env_path) # GET THE REWARD ROW AND COLUMN FOR THE AGENT'S REWARD SYSTEM
+            self.environment = self.loader.load_world_preset(self.env_path)
+
+            # Extract reward indices
+            it = np.nditer(self.environment, flags=['multi_index'])
+            for i in it:
+                if i == 1:
+                    self.reward_row = it.multi_index[0]
+                    self.reward_col = it.multi_index[1]
+                    break
         else:
             raise FileExistsError("Environment File not found or invalid filetype used.")
 
@@ -61,12 +76,12 @@ class GridEnvironmentController:
             self.agent = qAgent(self.environment.shape,
                                 self.reward_row,
                                 self.reward_col,
-                                loader.get_agent_parameters(self.agent_path[0]),
-                                loader.get_agent_qtable(self.agent_path[1]))
+                                self.loader.get_agent_parameters(self.agent_path[0]),
+                                self.loader.get_agent_qtable(self.agent_path[1]))
         elif fnmatch.fnmatch(self.agent_path[0], '*.agent.yaml'):
-            self.agent = qAgent(self.environment.shape, self.reward_row, self.reward_col, loader.get_agent_parameters(self.agent_path[0]), None)
+            self.agent = qAgent(self.environment.shape, self.reward_row, self.reward_col, self.loader.get_agent_parameters(self.agent_path[0]), None)
         elif fnmatch.fnmatch(self.agent_path[1], '*.agent.csv'):
-            self.agent = qAgent(self.environment.shape, self.reward_row, self.reward_col, None, loader.get_agent_qtable(self.agent_path[1]))
+            self.agent = qAgent(self.environment.shape, self.reward_row, self.reward_col, None, self.loader.get_agent_qtable(self.agent_path[1]))
         else:
             raise FileExistsError("Agent file not found or invalid filetype used.")
 
@@ -107,7 +122,3 @@ class GridEnvironmentController:
             pygame.quit()
         except:
             sys.exit(-1)
-    ##
-    # Save the generated world
-    def save_world(self):
-        np.savetxt("world.csv", self.environment, delimiter=",")

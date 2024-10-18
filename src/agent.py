@@ -2,13 +2,23 @@
 # TIME: [2024]
 # DESCRIPTION: Agent class where the Q-Learning algorithm sits.
 
-import grid_world_environment_utils
-
 import numpy as np
 
 class qAgent():
 
-    def __init__(self, dim : tuple, reward_row : int, reward_column : int, params : dict = None, qTable : np.array = None) -> None:
+    '''
+    - **dim**: *tuple*
+        - Dimensions of the environment.  Used to create the Q-Table.
+    - **reward_row**: *int*
+        - Row that contains the reward.  Unknown the agent, but used for rewarding it.
+    - **reward_column**: *int*
+        - Column that contains the reward.  Unknown to the agent, but used for rewarding it.
+    - **params**: *dict*
+        - Dictionary containing loaded parameters.
+    - **qTable**: *np.array* = None
+        - Optional parameter containing a pre-existing Q-Table.  Must be loaded from main driver before use.
+    '''
+    def __init__(self, dim : tuple, reward_row : int, reward_column : int, params : dict, qTable : np.array = None) -> None:
         self.reward_row = reward_row
         self.reward_column = reward_column
         self.dimensions = dim
@@ -16,6 +26,7 @@ class qAgent():
         self.epsilon_decay = 0
         self.gamma = 0
         self.alpha = 0
+        self.min_epsilon = 0
         self.num_epochs = 0
 
         # These will be constant variables
@@ -36,11 +47,11 @@ class qAgent():
     def _load_agent_params_(self, params):
         if params != None:
             try:
-                self.epsilon    = params['epsilon']
-                self.gamma      = params['gamma']
-                self.alpha      = params['alpha']
-                self.epsilon_decay = params['epsilon_decay']
-                self.num_epochs = params['num_epochs']
+                self.epsilon     = params['epsilon']
+                self.gamma       = params['gamma']
+                self.alpha       = params['alpha']
+                self.num_epochs  = params['num_epochs']
+                self.min_epsilon = params['min_exploration_probability']
             except:
                 raise KeyError("Params dict has invalid keys!")
         else:
@@ -74,7 +85,8 @@ class qAgent():
     def choose_action(self):
         if np.random.randint(0, 1) < self.epsilon:
             action = np.random.randint(0, self.num_actions - 1) # No known best actions, so choose one and explore
-            self.epsilon -= self.epsilon_decay # Decrease the exploration probability slightly.
+            if self.epsilon > self.min_epsilon: # Allow for a small constant probability for the agent to continue exploring to avoid local minima over time.
+                self.epsilon -= self.alpha # Decrease the exploration probability slightly.
         else:
             action = np.argmax(self.q_table[self.current_q_state, :]) # Select the best action in the current row
         return action
@@ -98,6 +110,7 @@ class qAgent():
                 return -0.001
             self.current_env_state[1] -= 1
 
+        # Target was found, reward the agent
         if self.current_env_state[0] == self.reward_row and self.current_env_state[1] == self.reward_column:
             return 1
         return 0
