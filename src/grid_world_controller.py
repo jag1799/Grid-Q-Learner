@@ -11,6 +11,7 @@ import numpy as np
 import pygame
 import random
 import sys
+import time
 from tqdm import tqdm
 
 class GridEnvironmentController:
@@ -51,19 +52,21 @@ class GridEnvironmentController:
             self.environment = np.zeros(shape=(int(environment_params['rows']), int(environment_params['columns'])))
             self.__insert_reward__()
         elif fnmatch.fnmatch(self.env_path, '*.world.csv'):
-            self.environment = loader.load_world_preset(self.env_path)
+            self.environment = loader.load_world_preset(self.env_path) # GET THE REWARD ROW AND COLUMN FOR THE AGENT'S REWARD SYSTEM
         else:
             raise FileExistsError("Environment File not found or invalid filetype used.")
 
         # Either load agent q table, hyperparameters, or both
         if fnmatch.fnmatch(self.agent_path[0], '*.agent.yaml') and fnmatch.fnmatch(self.agent_path[1], '*.agent.csv'):
             self.agent = qAgent(self.environment.shape,
+                                self.reward_row,
+                                self.reward_col,
                                 loader.get_agent_parameters(self.agent_path[0]),
                                 loader.get_agent_qtable(self.agent_path[1]))
         elif fnmatch.fnmatch(self.agent_path[0], '*.agent.yaml'):
-            self.agent = qAgent(self.environment.shape, loader.get_agent_parameters(self.agent_path[0]), None)
+            self.agent = qAgent(self.environment.shape, self.reward_row, self.reward_col, loader.get_agent_parameters(self.agent_path[0]), None)
         elif fnmatch.fnmatch(self.agent_path[1], '*.agent.csv'):
-            self.agent = qAgent(self.environment.shape, None, loader.get_agent_qtable(self.agent_path[1]))
+            self.agent = qAgent(self.environment.shape, self.reward_row, self.reward_col, None, loader.get_agent_qtable(self.agent_path[1]))
         else:
             raise FileExistsError("Agent file not found or invalid filetype used.")
 
@@ -77,7 +80,8 @@ class GridEnvironmentController:
 
         # Start main event loop
         for epoch in tqdm(range(num_epochs)):
-            while self.environment[self.agent.current_env_state[0], self.agent.current_env_state[1]] != 1:
+            start_time = time.time()
+            while self.environment[self.agent.current_env_state[0], self.agent.current_env_state[1]] != 1 and (time.time() - start_time) < 10:
                 self.agent.learn()
 
                 if self.show_world:
@@ -92,11 +96,7 @@ class GridEnvironmentController:
                     grid_world_environment_utils.draw_agent(self.screen, self.agent.current_env_state)
 
                     pygame.display.flip()
-                    self.clock.tick(5)
-
-                # Pure debugging statement for now
-                if self.environment[self.agent.current_env_state[0], self.agent.current_env_state[1]] == 1:
-                    print("Reward found!")
+                    self.clock.tick(60)
 
             self.agent.reset()
             epoch += 1
