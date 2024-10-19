@@ -85,8 +85,7 @@ class qAgent():
     def choose_action(self):
         if np.random.randint(0, 1) < self.epsilon:
             action = np.random.randint(0, self.num_actions - 1) # No known best actions, so choose one and explore
-            if self.epsilon > self.min_epsilon: # Allow for a small constant probability for the agent to continue exploring to avoid local minima over time.
-                self.epsilon -= self.alpha # Decrease the exploration probability slightly.
+            self.epsilon -= self.alpha # Decrease the exploration probability slightly.
         else:
             action = np.argmax(self.q_table[self.current_q_state, :]) # Select the best action in the current row
         return action

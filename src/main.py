@@ -6,7 +6,7 @@ from grid_world_controller import GridEnvironmentController
 from loader import Loader
 
 save_world   : bool = False
-show_world   : bool = False
+show_world   : bool = True
 save_q_table : bool = False
 
 def main():

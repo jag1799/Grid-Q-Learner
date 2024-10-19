@@ -1,5 +1,5 @@
 epsilon: 0.95 # Exploration Probability
 alpha: 0.01 # Exploration Probability Decay Rate
-min_exploration_probability: 0.1 # Minimum value epsilon can be
+min_exploration_probability: 0.01 # Minimum value epsilon can be
 gamma: 0.25 # Discount Rate
 num_epochs: 1000
